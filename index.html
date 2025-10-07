@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brain Dump</title>
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <h1 class="top">Brain Dump</h1>
+  <h1 class="center">Brain Dump</h1>
+  <h1 class="bottom">Brain Dump</h1>
+
+  <div class="input-zone">
+  <input id="typ" type="text" placeholder="文字を入力してEnter!" autofocus>
+  </div>
+
+  <div class="score-zone">
+  <p id="currentCount">length: 0</p>
+  <p id="totalCount">Total length: 0</p>
+  <p class="reset"> <button id="resetBtn">RESET</button></p>
+  </div>
+
+  <audio id="pistol" src="static/pistol.mp3"></audio>
+  <audio id="boom" src="static/boom.mp3"></audio>
+  <audio id="del" src="static/del.mp3"></audio>
+
+  <script>
+    const input = document.getElementById("typ");
+    const currentCount = document.getElementById("currentCount");
+    const totalCount = document.getElementById("totalCount");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let totalChars = 0; // 合計文字数カウント用
+
+    const pistolSound = document.getElementById("pistol");
+    const boomSound = document.getElementById("boom");
+    const delSound = document.getElementById("del")
+    
+    // 弾丸アニメーション用関数
+    function shootBullet() {
+      const bullet = document.createElement("div");
+      bullet.className = "bullet";
+
+      // 入力欄の位置を取得して弾丸の初期位置を決める
+      const rect = input.getBoundingClientRect();
+      bullet.style.left = rect.left + rect.width / 2 + "px";
+      bullet.style.top = rect.top + "px";
+
+      document.body.appendChild(bullet);
+
+      // ランダムな飛ぶ方向(角度を-45-45度の範囲で)
+      const angle = (Math.random() - 0.5) * Math.PI / 2;
+      const speed = 10 + Math.random() * 5; // 少し速度もランダム
+      let x = rect.left + rect.width / 2;
+      let y = rect.top;
+
+      const interval = setInterval(() => {
+        x += Math.sin(angle) * speed; // 横方向のずれ
+        y -= Math.cos(angle) * speed; // 上方向の移動
+        bullet.style.left = x + "px";
+        bullet.style.top = y + "px";
+
+        if (y < 20 || x < 0 || x > window.innerWidth) {
+          clearInterval(interval);
+          bullet.remove();
+        } 
+      }, 16); // 60fps
+    }
+  
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key == "Enter") {
+         const currentLength = input.value.length;
+         totalChars += currentLength; //入力文字数を加算
+
+         boomSound.currentTime = 0;
+         boomSound.play();
+
+         // 爆発時に文字を飛び散らせる
+         for (let i = 0; i < input.value.length; i++) {
+          const char = document.createElement("span");
+          char.className = "flying-char";
+          char.textContent = input.value[i];
+
+          // ランダムな色を生成
+          const r = Math.floor(200 + Math.random() * 55); // 200-255
+          const g = Math.floor(100 + Math.random() * 155) // 100- 255
+          const b = Math.floor(Math.random() * 50) // 0-50
+          char.style.color = `rgb(${r},${g},${b})`;
+
+          const rect = input.getBoundingClientRect(); 
+          char.style.left = rect.left + rect.width / 2 + "px";
+          char.style.top = rect.top + "px";
+          document.body.appendChild(char);
+
+          // ランダムな方向・速度
+          const angle = Math.random() * 2 * Math.PI;
+          const distance = 100 + Math.random() * 200;
+          const x = Math.cos(angle) * distance;
+          const y = Math.sin(angle) * distance;
+
+          // アニメーション適用
+          char.animate(
+            [
+              {transform: "translate(0, 0)", opacity: 1},
+              {transform: `translate(${x}px, ${y}px) rotate(${Math.random()*360}deg) scale(${1 + Math.random()*1.5})`, opacity:0}
+            ],
+            {
+              duration: 1200,
+              easing: "ease-out",
+              fill: "forwards"
+            }
+          );
+          setTimeout(() => char.remove(), 1200);
+         }
+
+         // 爆発エフェクト
+         const explosion = document.createElement("div");
+         explosion.classList.add("explosion-big");
+         explosion.style.left = Math.random() * window.innerWidth + "px";
+         explosion.style.top = Math.random() * window.innerHeight * 0.8 + "px";
+         document.body.appendChild(explosion);
+
+         // 画面揺れエフェクト追加
+         document.body.classList.add("shake");
+         setTimeout(() => document.body.classList.remove("shake"), 500);
+
+         // 少ししたら消す
+         setTimeout(() => explosion.remove(), 1200);
+         
+         // 合計文字数表示
+         totalCount.textContent = `Total length: ${totalChars}`;
+
+         input.value="";
+         currentCount.textContent = `length: 0`;
+      }
+    });
+
+    // ピストル音はinput イベントで日本語対応
+    input.addEventListener("input", () => {
+      currentCount.textContent = `length: ${input.value.length}`;
+
+      const lastChar = input.value.slice(-1); //入力された最後の文字
+      if (lastChar) {
+        pistolSound.currentTime = 0;
+        pistolSound.play();
+        shootBullet();
+      }
+    });
+
+    let prevValue = input.value; // 前回の文字列を保存しておく
+    input.addEventListener("input", () => {
+      // 入力欄が前回より短くなった→削除された
+      if (input.value.length < prevValue.length) {
+        delSound.currentTime = 0;
+        delSound.play();
+      }
+      prevValue = input.value;
+    });
+
+    resetBtn.addEventListener("click", () => {
+      totalChars = 0; // 合計文字数リセット
+      input.value=""; // 入力欄リセット
+      currentCount.textContent = "length: 0"; // 現在文字数リセット
+      totalCount.textContent = "Total length: 0";
+    })
+  </script> 
+</body>
+</html>
