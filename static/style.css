@@ -38,13 +38,11 @@ h1.bottom {
 }
 
 input {
-  font-size: 2vw;
+  font-size: 24px;
   padding: 10px;
-  width: 90vw;
-  max-width: 400px;
+  width: 400px;
   height: 80px;
   text-align: center;
-  box-sizing: border-box;
 }
 
 
